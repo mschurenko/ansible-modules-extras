@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+
 DOCUMENTATION = '''
 ---
 module: ec2_vpc_route_table
@@ -377,6 +378,11 @@ def ensure_subnet_associations(vpc_conn, vpc_id, route_table, subnets,
 
     return {'changed': changed}
 
+def remove_subnet_associations(vpc_conn, vpc_id, route_table, check_mode):
+    for a_id in [a.id for a in route_table.associations]:
+        changed = True
+        vpc_conn.disassociate_route_table(a_id, dry_run=check_mode)
+
 
 def ensure_propagation(vpc_conn, route_table, propagating_vgw_ids,
                        check_mode):
@@ -427,6 +433,7 @@ def ensure_route_table_absent(connection, module):
     if route_table is None:
         return {'changed': False}
 
+    remove_subnet_associations(connection, vpc_id, route_table, check_mode)
     try:
         connection.delete_route_table(route_table.id, dry_run=check_mode)
     except EC2ResponseError as e:
